@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# user
+_twitch_stream_key=""
+_hitbox_stream_key=""
+_picarto_stream_key=""
+
+_resolution_in="2048x1152"
+_resolution_out="1280x720"
+_fps_max="15"
+_iframe_interval="30" # should be 2x fps
+_iframe_interval_min="15" # equal fps
+_threads="2" # max 6
+_cbr="1500k" # 1000k - 3000k
+_quality="veryfast" # ffmpeg quality preset
+_audio_rate="44100"
+
+# terminal colours
+p="\033[0;35m"
+lp="\033[1;35m"
+nc="\033[0m"
+
+# dev
+__twitch_url=""
+__hitbox_url=""
+__picarto_url=""
+
+_url=""
+_key=""
+if [[ "$1" == "hitbox" ]] ; then
+	_url=$__hitbox_url
+	_key=$_hitbox_stream_key
+elif [[ "$1" == "twitch" ]] ; then
+	_url=$__twitch_url
+	_key=$_twitch_stream_key
+elif [[ "$1" == "picarto" ]] ; then
+	_url=$__picarto_url
+	_key=$_picarto_stream_key
+fi
+
+if [[ ! -z "$_url" ]] && [[ ! -z "$_key" ]] ; then
+	rm -f "ffmpeg.log" &>/dev/null
+	echo -e "$lp☆$p*$lp･$p゜$lpﾟ$p･$lp*$p neko ffmpeg streamer $lp*$p･$lp゜$pﾟ$lp･$p*$lp☆$nc"
+	echo ""
+	echo -e "   $p streaming to.. $lp「$_url」$nc"
+	echo -e "   $p resolution.... $lp「$_resolution_out」$nc"
+	echo -e "   $p fps........... $lp「$_fps_max」$nc"
+	echo -e "   $p bitrate....... $lp「$_cbr」$nc"
+	echo -e "   $p q-preset...... $lp「$_quality」$nc"
+	echo -e "   $p audio rate.... $lp「$_audio_rate」$nc"
+	echo -e "   $p ffmpeg log.... $lp「ffmpeg.log」$nc"
+	echo ""
+	ffmpeg	-f x11grab \
+		-s "$_resolution_in" \
+		-r "$_fps_max" \
+		-i :0.0 \
+		-f alsa \
+		-i pulse \
+		-f flv \
+		-ac 2 \
+		-ar $_audio_rate \
+		-vcodec libx264 \
+		-g $_iframe_interval \
+		-keyint_min $_iframe_interval_min \
+		-b: $_cbr \
+		-minrate $_cbr \
+		-maxrate $_cbr \
+		-pix_fmt yuv420p \
+		-s $_resolution_out \
+		-preset $_quality \
+		-tune film \
+		-acodec libmp3lame \
+		-threads $_threads \
+		-strict normal \
+		-bufsize $_cbr \
+		"$_url/$_key" &> ffmpeg.log
+	echo -e "$lp☆$p*$lp･$p゜$lpﾟ$p･$lp*$p ffmpeg closed! ciao~ $lp*$p･$lp゜$pﾟ$lp･$p*$lp☆$nc"
+else
+	echo "error: please check stream config!"
+fi
+
+
